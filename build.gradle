@@ -6,22 +6,23 @@ import com.android.build.gradle.api.TestVariant
 
 buildscript {
     repositories {
-        mavenCentral()
+        mavenLocal()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.6.+'
-        classpath 'com.novoda.gradle:robolectric-plugin:0.0.1-SNAPSHOT'
+        classpath 'com.android.tools.build:gradle:0.11.+'
+        classpath 'com.novoda.gradle:robolectric-plugin:0.0.1'
     }
 }
 
 configure(allprojects) {
     group = 'com.octo.android'
 
-    ext.androidVersion           = "4.1.1.4"
-    ext.androidSDKVersion        = "17"
-    ext.androidBuildToolsVersion = "17.0"
-    ext.androidSupportVersion    = "18.0.0"
+    ext.androidVersion           = "4.4.2"
+    ext.androidSDKVersion        = "android-19"
+    ext.androidBuildToolsVersion = "19.1.0"
+    ext.androidSupportVersion    = "19.0.1"
     ext.jodaLibraryVersion       = "2.2"
     ext.robotiumVersion          = "4.0"
     ext.hamcrestVersion          = "1.3"
@@ -60,21 +61,21 @@ project('android-sample') {
         compile "joda-time:joda-time:$jodaLibraryVersion"
         compile "com.android.support:support-v4:$androidSupportVersion"
 
-        instrumentTestCompile "com.jayway.android.robotium:robotium-solo:$robotiumVersion"
-        instrumentTestCompile "org.hamcrest:hamcrest-core:$hamcrestVersion"
-        instrumentTestCompile "com.squareup.spoon:spoon-client:$spoonVersion"
-        instrumentTestCompile "com.squareup:fest-android:$festVersion"
-        instrumentTestCompile "com.google.dexmaker:dexmaker:$dexmakerVersion"
-        instrumentTestCompile "com.google.dexmaker:dexmaker-mockito:$dexmakerMockitoVersion"
-        instrumentTestCompile "org.easymock:easymock:$easyMockVersion" exclude group: "cglib"
-        instrumentTestCompile "org.mockito:mockito-core:$mockitoVersion"
-        instrumentTestCompile "org.boundbox:boundbox-library:$boundBoxVersion"
+        androidTestCompile "com.jayway.android.robotium:robotium-solo:$robotiumVersion"
+        androidTestCompile "org.hamcrest:hamcrest-core:$hamcrestVersion"
+        androidTestCompile "com.squareup.spoon:spoon-client:$spoonVersion"
+        androidTestCompile "com.squareup:fest-android:$festVersion"
+        androidTestCompile "com.google.dexmaker:dexmaker:$dexmakerVersion"
+        androidTestCompile "com.google.dexmaker:dexmaker-mockito:$dexmakerMockitoVersion"
+        androidTestCompile "org.easymock:easymock:$easyMockVersion" exclude group: "cglib"
+        androidTestCompile "org.mockito:mockito-core:$mockitoVersion"
+        androidTestCompile "org.boundbox:boundbox-library:$boundBoxVersion"
     }
 
 
     android {
         buildToolsVersion "$androidBuildToolsVersion"
-        compileSdkVersion 17
+        compileSdkVersion "$androidSDKVersion"
 
         sourceSets {
             main {
@@ -103,7 +104,7 @@ project('android-sample') {
         }
 
         defaultConfig {
-            testPackageName "com.octo.android.sample.test"
+            testApplicationId "com.octo.android.sample.test"
             testInstrumentationRunner "android.test.InstrumentationTestRunner"
         }
 
@@ -140,21 +141,21 @@ project('android-sample') {
         include '**/*.java'
         exclude '**/gen/**'
 
-        classpath = files( project.configurations.compile.asPath )
+        classpath = project.configurations.compile + files(android.plugin.bootClasspath)
     }
 
-    task findbugs(type: FindBugs) {
+    task findbugs(type: FindBugs, dependsOn: 'compileDebugJava') {
         excludeFilter file('../config/quality/findbugs/findbugs-filter.xml')
-        classes = fileTree('build/classes/debug/')
-        source = fileTree('src/main/java/')
-        classpath = files( project.configurations.compile.asPath )
+        classes = files('build/intermediates/classes/debug').asFileTree
+        source = files(android.sourceSets.main.java.srcDirs).asFileTree
+        classpath = project.configurations.compile + files(android.plugin.bootClasspath)
         effort = 'max'
     }
 
     task pmd(type: Pmd) {
         ruleSetFiles = files('../config/quality/pmd/pmd-ruleset.xml')
         ruleSets = ["basic", "braces", "strings"]
-        source = fileTree(android.sourceSets.main.java.srcDirs)
+        source = files(android.sourceSets.main.java.srcDirs).asFileTree
     }
 
 
@@ -169,7 +170,7 @@ project('android-sample') {
             property "sonar.dynamicAnalysis", "reuseReports"
             properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
             properties["sonar.tests"] = android.sourceSets.instrumentTest.java.srcDirs
-            properties["sonar.binaries"] = file("build/classes/debug")
+            properties["sonar.binaries"] = file("build/intermediates/classes/debug")
             property "sonar.junit.reportsPath","build/instrumentTest-results/connected/"
         }
     }
@@ -188,9 +189,9 @@ project('android-sample-robolectric-tests') {
     apply plugin: "sonar-runner"
 
     repositories {
-        mavenCentral()
         mavenLocal()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
     }
 
     dependencies {
@@ -201,18 +202,17 @@ project('android-sample-robolectric-tests') {
         compile "joda-time:joda-time:$jodaLibraryVersion"
         compile "com.android.support:support-v4:$androidSupportVersion"
 
-        robolectricCompile 'org.robolectric:robolectric:2.0'
+        robolectricCompile 'org.robolectric:robolectric:2.3'
         robolectricCompile group: 'junit', name: 'junit', version: '4.+'
         robolectricCompile "joda-time:joda-time:$jodaLibraryVersion"
         robolectricCompile 'org.mockito:mockito-all:1.9.5'
         robolectricCompile 'org.easymock:easymock:3.2' exclude group: 'cglib'
         robolectricCompile "org.boundbox:boundbox-library:$boundBoxVersion"
-
     }
 
     android {
-        compileSdkVersion 17
-        buildToolsVersion "17.0.0"
+        compileSdkVersion "$androidSDKVersion"
+        buildToolsVersion "$androidBuildToolsVersion"
 
         sourceSets {
             main {
@@ -249,7 +249,7 @@ project('android-sample-robolectric-tests') {
 
     task(copy, type: Copy) {
         from(file('src/test/resources'))
-        into(file('build/classes/robolectric/'))
+        into(file('build/intermediates/classes/robolectric/'))
     }
 
     tasks['robolectric'].dependsOn('copy')
@@ -272,11 +272,10 @@ project('android-sample-robolectric-tests') {
             property "sonar.dynamicAnalysis", "reuseReports"
             properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
             properties["sonar.tests"] = android.sourceSets.instrumentTest.java.srcDirs
-            properties["sonar.binaries"] = file("build/classes/debug")
+            properties["sonar.binaries"] = file("build/intermediates/classes/debug")
             property "sonar.junit.reportsPath","build/test-results/"
         }
     }
-
 }
 
 //-------------------------
@@ -290,8 +289,8 @@ project('android-sample-espresso-tests') {
     apply plugin: 'eclipse'
     apply plugin: 'checkstyle'
 
-    println "ProjectDir is $projectDir/repo"
     repositories {
+        mavenLocal()
         mavenCentral()
         maven { url "repo/" }
     }
@@ -300,13 +299,13 @@ project('android-sample-espresso-tests') {
         compile "joda-time:joda-time:$jodaLibraryVersion"
         compile "com.android.support:support-v4:$androidSupportVersion"
         
-        instrumentTestCompile "com.google.android:android-espresso:1.0-SNAPSHOT"
+        androidTestCompile "com.google.android:android-espresso:1.0-SNAPSHOT"
     }
 
 
     android {
         buildToolsVersion "$androidBuildToolsVersion"
-        compileSdkVersion 17
+        compileSdkVersion "$androidSDKVersion"
 
         sourceSets {
             main {
@@ -335,7 +334,7 @@ project('android-sample-espresso-tests') {
         }
 
         defaultConfig {
-            testPackageName "com.octo.android.sample.espressotest"
+            testApplicationId "com.octo.android.sample.espressotest"
             testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
         }
 
@@ -347,7 +346,7 @@ project('android-sample-espresso-tests') {
         include '**/*.java'
         exclude '**/gen/**'
 
-        classpath = files( project.configurations.compile.asPath )
+        classpath = project.configurations.compile + files(android.plugin.bootClasspath)
     }
 
 }

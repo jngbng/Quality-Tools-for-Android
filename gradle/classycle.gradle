@@ -6,7 +6,7 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven { url { "http://artifactory.msi.umn.edu/simple/gradle-libs/" } }
+    maven { url { "https://java.odant.ru/artifactory/repo/" } }
 }
 
 dependencies {
@@ -100,7 +100,7 @@ class AndroidClassycleTask extends DefaultTask {
             // see also, maxWarnings and failureProperty arguments
             ant.classycle(reportFile: outputFile, failOnUnwantedDependencies: failOnUnwantedDependencies, mergeInnerClasses: mergeInnerClasses,
             			   definitionFile: definitionFile ) {
-		                        fileset(dir: "$gradleProject.buildDir/classes")
+		                        fileset(dir: "$gradleProject.buildDir/intermediates/classes")
                            }
 			            if (showViolations) {
 			                formatter(type: 'plain', useFile: false)
